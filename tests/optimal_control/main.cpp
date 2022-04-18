@@ -4,23 +4,17 @@
 #include "lion/thirdparty/include/cppad/cppad.hpp"
 #include "lion/io/Xml_document.h"
 #include "lion/foundation/types.h"
-#include "/Users/juanmanzanero/Documents/software/fastest-lap/src/core/vehicles/road_curvilinear.h"
-#include "/Users/juanmanzanero/Documents/software/fastest-lap/src/core/vehicles/track_by_arcs.h"
+#include "src/core/vehicles/road_curvilinear.h"
+#include "src/core/vehicles/track_by_arcs.h"
 #include "lion/math/matrix_extensions.h"
 #include "F16_Nguyen/F16_Nguyen_trim.h"
 
-#include "/Users/juanmanzanero/Documents/software/fastest-lap/src/core/applications/optimal_laptime.h"
+#include "src/core/applications/optimal_laptime.h"
 
 
 class F16_optimal_control
 {
  public:
-    using Timeseries_type = CppAD::AD<double>;
-    using Road_type = Road_curvilinear<Timeseries_type,Track_by_arcs, 0, 0>;
-    using Dynamic_model_t = F16_optimal_control;
-
-    F16_optimal_control(const std::string& aeropath, const std::string& enginepath, Track_by_arcs& track, scalar mass, scalar xcg_per_MAC) : _pl(aeropath, enginepath), _road(track), _mass(mass), _xcg_per_MAC(xcg_per_MAC) {}
-
     constexpr static size_t IX = F16_Nguyen::F16_Nguyen_plant::state_names::xEarth_m;
     constexpr static size_t IY = F16_Nguyen::F16_Nguyen_plant::state_names::yEarth_m;
 
@@ -31,6 +25,12 @@ class F16_optimal_control
     //! These are required by optimal_control.h
     constexpr static size_t ITIME = IX;
     constexpr static size_t IN = IY;
+
+    using Timeseries_type = CppAD::AD<double>;
+    using Road_type = Road_curvilinear<Timeseries_type,Track_by_arcs, ITIME, 0>;
+    using Dynamic_model_t = F16_optimal_control;
+
+    F16_optimal_control(const std::string& aeropath, const std::string& enginepath, Track_by_arcs& track, scalar mass, scalar xcg_per_MAC) : _pl(aeropath, enginepath), _road(track), _mass(mass), _xcg_per_MAC(xcg_per_MAC) {}
 
 
     //! The number of state variables
@@ -71,7 +71,11 @@ class F16_optimal_control
         const auto u_earth = dqdt[IX];
         const auto v_earth = dqdt[IY];
         const auto psi     = 0.0;
-        std::array<Timeseries_type,3> q_road = {q[ITIME], q[IN], 0.0};
+        std::array<Timeseries_type,ITIME+3> q_road{0.0};
+
+        q_road[ITIME] = q[ITIME];
+        q_road[IN]    = q[IN];
+        q_road[IN+1]  = 0.0;
 
         _road.set_state_and_controls(t, q_road, std::array<Timeseries_type,0>{});
 
@@ -79,7 +83,7 @@ class F16_optimal_control
         _road.update(u_earth, v_earth, 0.0);
 
         // (5.3) Download the road time derivative vector
-        std::array<Timeseries_type,3> dqdt_road;
+        std::array<Timeseries_type,ITIME+3> dqdt_road;
         _road.get_state_derivative(dqdt_road);
 
         // (5.4) Fill the results into the global dqdt
@@ -88,6 +92,10 @@ class F16_optimal_control
         // (6) Apply the chain rule to the entire dqdt: dqds = dqdt.dtds
         for (auto it = dqdt.begin(); it != dqdt.end(); ++it)
             (*it) *= _road.get_dtimedt();
+
+        // (7) Save some outputs for later use
+        aoa = y[F16_Nguyen::F16_Nguyen_plant::output_names::aoa_deg];
+        aos = y[F16_Nguyen::F16_Nguyen_plant::output_names::aos_deg];
 
         return {dqdt, {}};
     }
@@ -100,7 +108,7 @@ class F16_optimal_control
 
     // Optimal control extra definitions -------------------------------------------:-
 
-    static constexpr const size_t N_OL_EXTRA_CONSTRAINTS = 0;
+    static constexpr const size_t N_OL_EXTRA_CONSTRAINTS = 2;
 
     std::tuple<std::vector<scalar>,std::vector<scalar>> optimal_laptime_derivative_control_bounds() const
     {   
@@ -113,14 +121,14 @@ class F16_optimal_control
     {   
         return
         {   
-            {},
-            {}
+            {-15.0,-15.0},
+            { 15.0, 15.0}
         };
     }
 
     std::array<Timeseries_type,N_OL_EXTRA_CONSTRAINTS> optimal_laptime_extra_constraints() const
     {
-        return {};
+        return {aoa, aos};
     }
 
      
@@ -138,6 +146,17 @@ class F16_optimal_control
         std::array<scalar,NCONTROL> u_ub;
     };
 
+    static std::tuple<std::string,std::array<std::string,NSTATE>,std::array<std::string,NALGEBRAIC>,std::array<std::string,NCONTROL>>
+        get_state_and_control_names() 
+    {
+        return 
+        { 
+            "arclength",
+            { "u_mps","v_mps","w_mps","p_radps","q_radps","r_radps","qw_body2Earth","qx_body2Earth","qy_body2Earth","qz_body2Earth","xEarth_m","yEarth_m","zEarth_m","dh_deg","dlef_deg","dsb_deg","da_deg","dr_deg","thrustvectoring_longitude_angle_deg","thrustvectoring_latitude_angle_deg","P3_percent"},
+            {},
+            {"dh_dmd_deg","dlef_dmd_deg","dsb_dmd_deg","da_dmd_deg","dr_dmd_deg","thrustvectoring_longitude_angle_dmd_deg","thrustvectoring_latitude_angle_dmd_deg","throttle_percent"}
+        };
+    }
   
     State_and_control_upper_lower_and_default_values get_state_and_control_upper_lower_and_default_values() const
     {
@@ -171,16 +190,16 @@ class F16_optimal_control
         q_lb[F16_Nguyen::F16_Nguyen_plant::state_names::r_radps] = -10.0;
         q_ub[F16_Nguyen::F16_Nguyen_plant::state_names::r_radps] =  10.0;
 
-        q_lb[F16_Nguyen::F16_Nguyen_plant::state_names::qw_body2Earth] = 0.0;
+        q_lb[F16_Nguyen::F16_Nguyen_plant::state_names::qw_body2Earth] = -1.0;
         q_ub[F16_Nguyen::F16_Nguyen_plant::state_names::qw_body2Earth] = 1.0;
 
-        q_lb[F16_Nguyen::F16_Nguyen_plant::state_names::qx_body2Earth] = 0.0;
+        q_lb[F16_Nguyen::F16_Nguyen_plant::state_names::qx_body2Earth] = -1.0;
         q_ub[F16_Nguyen::F16_Nguyen_plant::state_names::qx_body2Earth] = 1.0;
 
-        q_lb[F16_Nguyen::F16_Nguyen_plant::state_names::qy_body2Earth] = 0.0;
+        q_lb[F16_Nguyen::F16_Nguyen_plant::state_names::qy_body2Earth] = -1.0;
         q_ub[F16_Nguyen::F16_Nguyen_plant::state_names::qy_body2Earth] = 1.0;
 
-        q_lb[F16_Nguyen::F16_Nguyen_plant::state_names::qz_body2Earth] = 0.0;
+        q_lb[F16_Nguyen::F16_Nguyen_plant::state_names::qz_body2Earth] = -1.0;
         q_ub[F16_Nguyen::F16_Nguyen_plant::state_names::qz_body2Earth] = 1.0;
 
         // (This is time, not x)
@@ -190,8 +209,8 @@ class F16_optimal_control
         q_lb[F16_Nguyen::F16_Nguyen_plant::state_names::yEarth_m] = std::numeric_limits<double>::lowest();
         q_ub[F16_Nguyen::F16_Nguyen_plant::state_names::yEarth_m] = std::numeric_limits<double>::max();        
 
-        q_lb[F16_Nguyen::F16_Nguyen_plant::state_names::zEarth_m] = -100.0; 
-        q_ub[F16_Nguyen::F16_Nguyen_plant::state_names::zEarth_m] =  1.0;    
+        q_lb[F16_Nguyen::F16_Nguyen_plant::state_names::zEarth_m] = -10.0; 
+        q_ub[F16_Nguyen::F16_Nguyen_plant::state_names::zEarth_m] =  10.0;    
 
         q_lb[F16_Nguyen::F16_Nguyen_plant::state_names::dh_deg] = -15.0; 
         q_ub[F16_Nguyen::F16_Nguyen_plant::state_names::dh_deg] =  15.0;
@@ -235,7 +254,7 @@ class F16_optimal_control
         u_ub[F16_Nguyen::F16_Nguyen_plant::input_names::dr_dmd_deg] = 15.0;
 
         u_lb[F16_Nguyen::F16_Nguyen_plant::input_names::thrustvectoring_longitude_angle_dmd_deg] = -5.0;
-        u_lb[F16_Nguyen::F16_Nguyen_plant::input_names::thrustvectoring_longitude_angle_dmd_deg] =  5.0;
+        u_ub[F16_Nguyen::F16_Nguyen_plant::input_names::thrustvectoring_longitude_angle_dmd_deg] =  5.0;
 
         u_lb[F16_Nguyen::F16_Nguyen_plant::input_names::thrustvectoring_latitude_angle_dmd_deg] = -5.0;
         u_ub[F16_Nguyen::F16_Nguyen_plant::input_names::thrustvectoring_latitude_angle_dmd_deg] =  5.0;
@@ -252,6 +271,8 @@ class F16_optimal_control
         };
     }
   
+    Timeseries_type aoa;
+    Timeseries_type aos;
 
  private:
     F16_Nguyen::F16_Nguyen_plant _pl;
@@ -345,24 +366,30 @@ int main()
 
     std::copy(q.cbegin(), q.cend(), q_cppad.begin());
     std::copy(u.cbegin(), u.cend(), u_cppad.begin());
-
-    for (auto& dqdt_i : vehicle(q_cppad,{},u_cppad,0.0).first )
+    const auto dqdt = vehicle(q_cppad,{},u_cppad,0.0).first;
+    for (const auto& dqdt_i : dqdt)
         assert(std::abs(dqdt_i) < 1.0e-13 );
+
+
+    
 
     std::cout << "[info] Trim successful:" << std::endl;
     std::cout << "[info]     -> state: " << q << std::endl;
     std::cout << "[info]     -> controls: " << u << std::endl;
+    std::cout << "[info]     -> time derivative: " << dqdt << std::endl;
 
   
     // (6) Run optimal control in a straight line
     auto control_variables = typename Optimal_laptime<F16_optimal_control>::template Control_variables<>{};
 
     for (size_t i = 0; i < F16_optimal_control::NCONTROL; ++i)
-        control_variables[i] = Optimal_laptime<F16_optimal_control>::create_full_mesh({n+1,u[i]}, 1.0e-2);
+        control_variables[i] = Optimal_laptime<F16_optimal_control>::create_full_mesh(std::vector<scalar>(n+1,u[i]), 1.0e-2);
     
     Optimal_laptime<F16_optimal_control>::Options opts;
     opts.print_level = 5;
-    Optimal_laptime opt_laptime(s, true, false, vehicle, {n+1,q}, {}, control_variables, opts);
-   
+    opts.maximum_iterations = 700;
+    opts.throw_if_fail = false;
+    Optimal_laptime opt_laptime(s, false, true, vehicle, {n+1,q}, {n+1,std::array<double,0>{}}, control_variables, opts);
 
+    opt_laptime.xml()->save("results.xml");
 }
