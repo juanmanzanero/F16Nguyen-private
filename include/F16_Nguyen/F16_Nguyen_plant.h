@@ -343,8 +343,8 @@ namespace F16_Nguyen
 
         // call air dynamics
         std::copy_n(F16_Nguyen_air_dynamics::outputs(y[output_names_body_dynamics::udot_mps2], y[output_names_body_dynamics::vdot_mps2], y[output_names_body_dynamics::wdot_mps2],
-                                                     y[output_names_air_kinematics::TAS_mps], y[output_names_air_kinematics::aoa_deg], y[output_names_air_kinematics::aos_deg],
                                                      y[output_names_air_kinematics::VTASx_mps], y[output_names_air_kinematics::VTASy_mps], y[output_names_air_kinematics::VTASz_mps],
+                                                     y[output_names_air_kinematics::TAS_mps], y[output_names_air_kinematics::aoa_deg], y[output_names_air_kinematics::aos_deg],
                                                      y[output_names_air_kinematics::true_heading_angle_deg], y[output_names_air_kinematics::flight_path_angle_deg], y[output_names_air_kinematics::flight_roll_angle_deg],
                                                      y[output_names_body_dynamics::Nx_g], y[output_names_body_dynamics::Ny_g], y[output_names_body_dynamics::Nz_g],
                                                      x[state_names::p_radps], x[state_names::q_radps], x[state_names::r_radps]).cbegin(),
