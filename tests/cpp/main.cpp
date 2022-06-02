@@ -58,14 +58,14 @@ int main()
 
 int main()
 {
-    const std::string aeropath = "../../datasets/aero";
-    const std::string enginepath = "../../datasets/engine";
+    const std::string aeropath = "/home/c83833/codes/F16/F16_Nguyen/datasets/aero";
+    const std::string enginepath = "/home/c83833/codes/F16/F16_Nguyen/datasets/engine";
 
     F16_Nguyen::F16_Nguyen_plant pl(aeropath, enginepath);
 
 
     auto sl = pl.state_names2str().cbegin();
-    std::cout << "plant_num_states  = " << decltype(pl)::num_states() << ";\n";
+    std::cout << "plant_num_states  = " << decltype(pl)::num_states << ";\n";
     std::cout << "plant_state_names = {'" << *sl++ << "'";
     while (sl != pl.state_names2str().cend()) {
         std::cout << "; ...\n'" << *sl++ << "'";

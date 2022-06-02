@@ -2,8 +2,7 @@
 % Tests a plant linearization, at a S & L trim point.
 %
 
-addpath('./functions');
-addpath(genpath('/home/c83833/projects/arbs/boom3d/visualize/functions'));
+addpath(genpath('./functions'));
 
 
 % helper constants

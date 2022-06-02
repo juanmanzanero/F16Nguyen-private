@@ -62,14 +62,17 @@ for d = diroutdir'
                     contains(info.title{2}, 'CN') || ...
                     contains(info.title{2}, 'CLL')
                 % asymmetric coeffs: constant slope, and the
-                % non-control-surface-related ones are zero
-                % at beta = 0
+                % static ones are zero at beta = 0
                 central_columns = interp1([info.columns(pos_beta0_column - 1) info.columns(pos_beta0_column + 1)], ...
                     [mat(:, pos_beta0_column - 1), mat(:, pos_beta0_column + 1)]', ...
                     [-Dbeta_numerical_deg, 0., Dbeta_numerical_deg])';
-
-                if ~contains(info.title{2}, 'da') && ~contains(info.title{2}, 'dr')
+                                
+                if contains(info.title{2}, 'CLL(') || ...
+                        contains(info.title{2}, 'CY(') || ...
+                        contains(info.title{2}, 'CN(')
+                    
                     central_columns = central_columns - central_columns(:, 2);
+                    
                 end
 
                 mat = [mat(:, 1:pos_beta0_column - 1), ...
@@ -89,7 +92,7 @@ for d = diroutdir'
                     mat(:, pos_beta0_column + 1:end)];
 
             else
-                error('rewrite_aero_for_beta_symmetry: wtf!')
+                error('rewrite_aero_with_beta_symmetry: wtf!')
 
             end
 
@@ -131,7 +134,7 @@ rowinfo    = regexp(strfile, '\# ROWS (.*?)\:(.*?)$', 'tokens', 'lineanchors');
 columninfo = regexp(strfile, '\# COLUMNS (.*?)\:(.*?)$', 'tokens', 'lineanchors');
 
 if isempty(title) || isempty(title{:})
-    error('rewrite_aero_for_beta_symmetry:read_dataset_csv: inconsistent table.')
+    error('rewrite_aero_with_beta_symmetry:read_dataset_csv: inconsistent table.')
 else
     info = struct('title', {strtrim(strrep(strsplit(strtrim(title{:}), '\n'), '#', ''))});
 end
@@ -149,11 +152,11 @@ else
         info.rows      = str2num(rowinfo{1}{2}); %#ok<ST2NM>
         
         if num_rows ~= size(mat, 1) || numel(info.rows) ~= num_rows || ~issorted(info.rows)
-            error('rewrite_aero_for_beta_symmetry:read_dataset_csv: inconsistent table.')
+            error('rewrite_aero_with_beta_symmetry:read_dataset_csv: inconsistent table.')
         end
         
     else
-        error('rewrite_aero_for_beta_symmetry:read_dataset_csv: inconsistent table.')
+        error('rewrite_aero_with_beta_symmetry:read_dataset_csv: inconsistent table.')
         
     end
     
@@ -165,7 +168,7 @@ else
         info.columns      = str2num(columninfo{1}{2}); %#ok<ST2NM>
         
         if num_columns ~= size(mat, 2) || numel(info.columns) ~= num_columns || ~issorted(info.columns)
-            error('rewrite_aero_for_beta_symmetry:read_dataset_csv: inconsistent table.')
+            error('rewrite_aero_with_beta_symmetry:read_dataset_csv: inconsistent table.')
         end
         
     end

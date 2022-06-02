@@ -2,7 +2,7 @@
 % Test extracting the plant's properties.
 %
 
-addpath('./functions')
+addpath(genpath('./functions'))
 
 
 % open lib

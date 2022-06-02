@@ -117,7 +117,7 @@ namespace F16_Nguyen
         template<typename ForceAndMomentInputsType>
         constexpr auto force_and_moment_coefficients(const ForceAndMomentInputsType & u_FM) const
         {
-            ensure_minimum_size<_num_force_and_moment_inputs>(u_FM);
+            ensure_minimum_size<_num_force_and_moment_inputs>(u_FM);            
             return force_and_moment_coefficients(u_FM[force_and_moment_input_names::aoa_deg], u_FM[force_and_moment_input_names::aos_deg],
                                                  u_FM[force_and_moment_input_names::dh_deg],
                                                  u_FM[force_and_moment_input_names::TAS_mps],
@@ -701,7 +701,7 @@ namespace F16_Nguyen
                            (c[dataset_coefficient_names::CNp] + c[dataset_coefficient_names::DCNplef] * dlef_nondim) * p_nondim +
                            c[dataset_coefficient_names::DCNbeta] * aos_deg;
 
-        const auto DCLLda20 = c[dataset_coefficient_names::CLLda20] - c[dataset_coefficient_names::CLLdh0];
+        const auto DCLLda20 = c[dataset_coefficient_names::CLLda20] - c[dataset_coefficient_names::CLLdh0];        
         const auto CLLtot = c[dataset_coefficient_names::CLL] -
                             CZtot * Dycg_nondim +
                             (c[dataset_coefficient_names::CLLlef] - c[dataset_coefficient_names::CLLdh0]) * dlef_nondim +

@@ -2,8 +2,7 @@
 % Tests a manoeuvre.
 %
 
-addpath('./functions');
-addpath(genpath('/home/c83833/projects/arbs/boom3d/visualize/functions'));
+addpath(genpath('./functions'));
 
 
 % helper constants
@@ -27,7 +26,7 @@ dlreset_F16_Nguyen_clib(libalias, ...
 plant_properties = F16_Nguyen_plant_properties(libalias);
 
 cplant = new_F16_Nguyen_plant(libalias, ...
-    '../../datasets/aero', '../../datasets/engine');
+    '../../datasets/aero_betasym', '../../datasets/engine');
 
 
 % trim the plant
@@ -182,6 +181,11 @@ zlabel('z')
 plot3([timehistories.states.xEarth_m], ...
     [timehistories.states.yEarth_m], ...
     [timehistories.states.zEarth_m])
+
+
+% finalize the plant and the lib
+delete_F16_Nguyen_plant(libalias, cplant);
+clear dtor
 
 
 %

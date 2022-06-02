@@ -2,8 +2,7 @@
 % Test an S & L trim, against the "boom3d" equivalent.
 %
 
-addpath('./functions');
-addpath(genpath('/home/c83833/projects/arbs/boom3d/visualize/functions'));
+addpath(genpath('./functions'));
 
 
 % open lib
@@ -71,7 +70,7 @@ trim_inputs.xcg_per_MAC           = xcg_per_MAC;
 
 
 % the two previous solutions should be super similar...
-tol = 1e-12;
+tol = 1e-10;
 assert(isequal(trim_success, matlab_solution.trim_success))
 assert(abs(trim_outputs.pitch_deg - matlab_solution.theta_deg) < tol)
 assert(abs(trim_outputs.dh_deg - matlab_solution.dh_deg) < tol)

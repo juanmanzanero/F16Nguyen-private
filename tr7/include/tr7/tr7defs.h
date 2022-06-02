@@ -91,7 +91,6 @@ namespace std
 
 namespace std
 {
-/*
     // neither gcc-8 nor VS2017 have the scan routines from <numeric>...
     template<typename InputIt, typename OutputIt, typename T, typename BinaryOperation>
     constexpr OutputIt exclusive_scan(InputIt first, InputIt last,
@@ -153,7 +152,6 @@ namespace std
 
     }
 
-*/
 }
 
 

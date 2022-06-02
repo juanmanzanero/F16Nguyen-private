@@ -139,7 +139,6 @@ namespace F16_Nguyen
                     Nwz_g] = matrix3x3_times_vector3d(T_body2wind,
                                                       Nx_g, Ny_g, Nz_g);
 
-
         // return the model's outputs
         return outputs_type<T>{ dVTASdt_mps2[0], dVTASdt_mps2[1], dVTASdt_mps2[2],
                                 VTASxdot_mps2, VTASydot_mps2, VTASzdot_mps2,
